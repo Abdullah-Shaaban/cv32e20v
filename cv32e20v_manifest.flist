@@ -1,0 +1,102 @@
+///////////////////////////////////////////////////////////////////////////////
+//
+// Copyright 2022 OpenHW Group
+//
+// Licensed under the Solderpad Hardware Licence, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://solderpad.org/licenses/
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// SPDX-License-Identifier: Apache-2.0 WITH SHL-2.1
+///////////////////////////////////////////////////////////////////////////////
+//
+// Manifest for the CV32E20V RTL model.
+//   - Format based on manifest used by other CORE-V cores.
+//   - Relevent synthesis and simulation scripts/Makefiles must set the shell
+//     ENV variable CVE2_RTL_DIR and SPATZ_RTL_DIR as required.
+//
+//
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////
+//////// CVE2 /////////
+///////////////////////
++incdir+/pri/abal/V_Unit/cv32e20v/CVE2X/rtl/../shared/rtl/
++incdir+/pri/abal/V_Unit/cv32e20v/CVE2X/rtl/../rtl
++incdir+/pri/abal/V_Unit/cv32e20v/CVE2X/rtl/../shared/rtl/sim
++incdir+/pri/abal/V_Unit/cv32e20v/CVE2X/rtl/../vendor/lowrisc_ip/ip/prim/rtl
++incdir+/pri/abal/V_Unit/cv32e20v/CVE2X/rtl/../vendor/lowrisc_ip/dv/sv/dv_utils
+/pri/abal/V_Unit/cv32e20v/CVE2X/rtl/cve2_pkg.sv
+/pri/abal/V_Unit/cv32e20v/CVE2X/rtl/cve2_tracer_pkg.sv
+/pri/abal/V_Unit/cv32e20v/CVE2X/rtl/../vendor/lowrisc_ip/ip/prim/rtl/prim_secded_pkg.sv
+/pri/abal/V_Unit/cv32e20v/CVE2X/rtl/../vendor/lowrisc_ip/ip/prim/rtl/prim_ram_1p_pkg.sv
+/pri/abal/V_Unit/cv32e20v/CVE2X/rtl/cve2_if_xif.sv
+/pri/abal/V_Unit/cv32e20v/CVE2X/rtl/cve2_alu.sv
+/pri/abal/V_Unit/cv32e20v/CVE2X/rtl/cve2_compressed_decoder.sv
+/pri/abal/V_Unit/cv32e20v/CVE2X/rtl/cve2_controller.sv
+/pri/abal/V_Unit/cv32e20v/CVE2X/rtl/cve2_cs_registers.sv
+/pri/abal/V_Unit/cv32e20v/CVE2X/rtl/cve2_csr.sv
+/pri/abal/V_Unit/cv32e20v/CVE2X/rtl/cve2_counter.sv
+/pri/abal/V_Unit/cv32e20v/CVE2X/rtl/cve2_decoder.sv
+/pri/abal/V_Unit/cv32e20v/CVE2X/rtl/cve2_ex_block.sv
+/pri/abal/V_Unit/cv32e20v/CVE2X/rtl/cve2_fetch_fifo.sv
+/pri/abal/V_Unit/cv32e20v/CVE2X/rtl/cve2_id_stage.sv
+/pri/abal/V_Unit/cv32e20v/CVE2X/rtl/cve2_if_stage.sv
+/pri/abal/V_Unit/cv32e20v/CVE2X/rtl/cve2_load_store_unit.sv
+/pri/abal/V_Unit/cv32e20v/CVE2X/rtl/cve2_multdiv_fast.sv
+/pri/abal/V_Unit/cv32e20v/CVE2X/rtl/cve2_multdiv_slow.sv
+/pri/abal/V_Unit/cv32e20v/CVE2X/rtl/cve2_prefetch_buffer.sv
+/pri/abal/V_Unit/cv32e20v/CVE2X/rtl/cve2_pmp.sv
+/pri/abal/V_Unit/cv32e20v/CVE2X/rtl/cve2_register_file_ff.sv
+/pri/abal/V_Unit/cv32e20v/CVE2X/rtl/cve2_wb.sv
+/pri/abal/V_Unit/cv32e20v/CVE2X/rtl/cve2_core.sv
+/pri/abal/V_Unit/cv32e20v/CVE2X/rtl/cve2_top.sv
+/pri/abal/V_Unit/cv32e20v/CVE2X/rtl/cve2_top_tracing.sv
+/pri/abal/V_Unit/cv32e20v/CVE2X/rtl/cve2_tracer.sv
+/pri/abal/V_Unit/cv32e20v/CVE2X/rtl/../bhv/cve2_sim_clock_gate.sv
+
+///////////////////////
+//////// Spatz ////////
+///////////////////////
++incdir+/pri/abal/V_Unit/cv32e20v/common_cells/include
+/pri/abal/V_Unit/cv32e20v/spatz/hw/ip/snitch/src/riscv_instr.sv
+/pri/abal/V_Unit/cv32e20v/spatz/hw/ip/reqrsp_interface/src/reqrsp_pkg.sv
+/pri/abal/V_Unit/cv32e20v/cvfpu/src/fpnew_pkg.sv
+/pri/abal/V_Unit/cv32e20v/common_cells/src/cf_math_pkg.sv
+/pri/abal/V_Unit/cv32e20v/axi-0.39.1-beta/src/axi_pkg.sv
+/pri/abal/V_Unit/cv32e20v/tech_cells_generic-master/src/rtl/tc_clk.sv
+/pri/abal/V_Unit/cv32e20v/common_cells/src/spill_register_flushable.sv
+/pri/abal/V_Unit/cv32e20v/common_cells/src/spill_register.sv
+/pri/abal/V_Unit/cv32e20v/common_cells/src/fall_through_register.sv
+/pri/abal/V_Unit/cv32e20v/common_cells/src/fifo_v3.sv
+/pri/abal/V_Unit/cv32e20v/common_cells/src/deprecated/find_first_one.sv
+/pri/abal/V_Unit/cv32e20v/common_cells/src/lzc.sv
+/pri/abal/V_Unit/cv32e20v/common_cells/src/delta_counter.sv
+/pri/abal/V_Unit/cv32e20v/common_cells/src/rr_arb_tree.sv
+/pri/abal/V_Unit/cv32e20v/spatz/hw/ip/spatz/src/reorder_buffer.sv
+/pri/abal/V_Unit/cv32e20v/spatz/hw/ip/spatz/src/rvv_pkg.sv
+/pri/abal/V_Unit/cv32e20v/spatz/hw/ip/spatz/src/generated/spatz_pkg.sv
+/pri/abal/V_Unit/cv32e20v/spatz/hw/ip/spatz/src/spatz_serdiv.sv
+/pri/abal/V_Unit/cv32e20v/spatz/hw/ip/spatz/src/spatz_decoder.sv
+/pri/abal/V_Unit/cv32e20v/spatz/hw/ip/spatz/src/spatz_simd_lane.sv
+/pri/abal/V_Unit/cv32e20v/spatz/hw/ip/spatz/src/vregfile.sv
+/pri/abal/V_Unit/cv32e20v/spatz/hw/ip/spatz/src/spatz_ipu.sv
+/pri/abal/V_Unit/cv32e20v/spatz/hw/ip/spatz/src/spatz_vfu.sv
+/pri/abal/V_Unit/cv32e20v/spatz/hw/ip/spatz/src/spatz_vlsu.sv
+/pri/abal/V_Unit/cv32e20v/spatz/hw/ip/spatz/src/spatz_vrf.sv
+/pri/abal/V_Unit/cv32e20v/spatz/hw/ip/spatz/src/spatz_vsldu.sv
+/pri/abal/V_Unit/cv32e20v/spatz/hw/ip/spatz/src/spatz_controller.sv
+/pri/abal/V_Unit/cv32e20v/spatz/hw/ip/spatz/src/spatz.sv
+
+///////////////////////
+////// Top Level //////
+///////////////////////
+/pri/abal/V_Unit/cv32e20v/hw/data_mem_arbiter.sv
+/pri/abal/V_Unit/cv32e20v/hw/vector_top.sv

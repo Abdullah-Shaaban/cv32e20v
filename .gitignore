@@ -1,0 +1,11 @@
+.dvt/
+*.log
+
+# Don't track syn/ because it's confidential
+syn/
+
+# Don't track dependency repos. TODO: add as submodules later
+common_cells/
+axi-0.39.1-beta/
+cvfpu/
+tech_cells_generic-master/
