@@ -1,0 +1,6 @@
+[submodule "CVE2X"]
+	path = CVE2X
+	url = https://github.com/Abdullah-Shaaban/CVE2X.git
+[submodule "spatz"]
+	path = spatz
+	url = https://github.com/Abdullah-Shaaban/spatz.git
