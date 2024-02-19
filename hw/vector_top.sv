@@ -80,8 +80,6 @@ module vector_top import cve2_pkg::*; #(
   logic [31:0]   vdata_addr;
   logic [31:0]   vdata_wdata;
   logic          vdata_req;
-  logic          vect_pending_store;
-  logic          vect_pending_load;
   logic          vdata_gnt;
   logic          vdata_rvalid;
   logic          vdata_err;
@@ -91,66 +89,43 @@ module vector_top import cve2_pkg::*; #(
   cve2_if_xif xif_if();
 
   // Data memory arbiter
-  localparam EnableArbiter = 0;
-  generate
-    if(EnableArbiter) begin : data_arbiter
-      data_mem_arbiter u_data_mem_arbiter (
-        .clk_i,
-        .rst_ni,
-        
-        // Scalar interface
-        .sdata_req_i            (sdata_req),
-        .sdata_we_i             (sdata_we),
-        .sdata_be_i             (sdata_be),
-        .sdata_addr_i           (sdata_addr),
-        .sdata_wdata_i          (sdata_wdata),
-        .sdata_gnt_o            (sdata_gnt),
-        .sdata_rvalid_o         (sdata_rvalid),
-        .sdata_err_o            (sdata_err),
-        .sdata_rdata_o          (sdata_rdata),
+  data_mem_arbiter u_data_mem_arbiter (
+    .clk_i,
+    .rst_ni,
+    
+    // Scalar interface
+    .sdata_req_i            (sdata_req),
+    .sdata_we_i             (sdata_we),
+    .sdata_be_i             (sdata_be),
+    .sdata_addr_i           (sdata_addr),
+    .sdata_wdata_i          (sdata_wdata),
+    .sdata_gnt_o            (sdata_gnt),
+    .sdata_rvalid_o         (sdata_rvalid),
+    .sdata_err_o            (sdata_err),
+    .sdata_rdata_o          (sdata_rdata),
 
-        // Vector interface
-        .vdata_we_i             (vdata_we),
-        .vdata_be_i             (vdata_be),
-        .vdata_addr_i           (vdata_addr),
-        .vdata_wdata_i          (vdata_wdata),
-        .vdata_req_i            (vdata_req),
-        .vect_pending_store_i   (vect_pending_store),
-        .vect_pending_load_i    (vect_pending_load),
-        .vdata_gnt_o            (vdata_gnt),
-        .vdata_rvalid_o         (vdata_rvalid),
-        .vdata_err_o            (vdata_err),
-        .vdata_rdata_o          (vdata_rdata),
+    // Vector interface
+    .vdata_we_i             (vdata_we),
+    .vdata_be_i             (vdata_be),
+    .vdata_addr_i           (vdata_addr),
+    .vdata_wdata_i          (vdata_wdata),
+    .vdata_req_i            (vdata_req),
+    .vdata_gnt_o            (vdata_gnt),
+    .vdata_rvalid_o         (vdata_rvalid),
+    .vdata_err_o            (vdata_err),
+    .vdata_rdata_o          (vdata_rdata),
 
-        // Memory interface
-        .data_gnt_i,
-        .data_rvalid_i,
-        .data_err_i,
-        .data_rdata_i,
-        .data_req_o,
-        .data_we_o,
-        .data_addr_o,
-        .data_be_o,
-        .data_wdata_o
-      );
-    end else begin
-      always_comb begin
-        data_req_o = sdata_req;
-        sdata_gnt = data_gnt_i;
-        data_we_o = sdata_we;
-        data_be_o = sdata_be;
-        data_addr_o = sdata_addr;
-        data_wdata_o = sdata_wdata;
-        sdata_rdata = data_rdata_i;
-        sdata_rvalid = data_rvalid_i;
-        sdata_err = data_err_i;
-        // Just disable the vector interface
-        vdata_gnt = 0;
-        vdata_rvalid = 0;
-      end
-    end
-
-  endgenerate
+    // Memory interface
+    .data_gnt_i,
+    .data_rvalid_i,
+    .data_err_i,
+    .data_rdata_i,
+    .data_req_o,
+    .data_we_o,
+    .data_addr_o,
+    .data_be_o,
+    .data_wdata_o
+  );
   
 
   //////////////////////////////
@@ -239,7 +214,10 @@ module vector_top import cve2_pkg::*; #(
     vdata_addr = spatz_mem_req.addr;
     vdata_wdata = spatz_mem_req.data;
     vdata_we = spatz_mem_req.write;
-    vdata_be = spatz_mem_req.strb;
+    // TODO: handle the byte enable signal for loads in a better way. Spatz does not use it for loads (keeps it '0), 
+    // but the memory model in the UVM TB requires it to be valid for both loads and stores. One of Spatz's README files
+    // says: "Sub-word accesses are not allowed. Fewer words can be written by using the `strb` signal. The entire bus word is accessed during reads."
+    vdata_be = vdata_we? spatz_mem_req.strb : '1;
     spatz_mem_rsp.data = vdata_rdata;
   end
 
@@ -255,7 +233,7 @@ module vector_top import cve2_pkg::*; #(
   ) u_spatz (
     .clk_i                   (clk_i),
     .rst_ni                  (rst_ni),
-    .testmode_i              (/*not connected*/),
+    .testmode_i              (0),
     .hart_id_i               (hart_id_i),
     
     // Interface to CVE2
@@ -278,7 +256,7 @@ module vector_top import cve2_pkg::*; #(
 
     // Floating-point, not enabled here
     .fp_lsu_mem_req_o        (/*not connected*/),
-    .fp_lsu_mem_rsp_i        (/*not connected*/),
+    .fp_lsu_mem_rsp_i        ('0),
     .fpu_rnd_mode_i          (/*not connected*/),
     .fpu_fmt_mode_i          (/*not connected*/),
     .fpu_status_o            (/*not connected*/)
@@ -454,30 +432,40 @@ module vector_top import cve2_pkg::*; #(
   
   // Property 1: for each valid issue request, there is a ready response. 
   // NOTE: "or" allows CVE2 to retract its issue request, which is valid behavior.
-  assert property ($rose(xif_if.issue_valid) |-> ##[1:$] xif_if.issue_ready or $fell(xif_if.issue_valid));
+  assert property ($rose(xif_if.issue_valid) |-> ##[1:$] xif_if.issue_ready or $fell(xif_if.issue_valid))
+      else $error("xif_if.issue_ready is not asserted for a valid issue request");
   
   // Property 2: The issue_req signals are valid when issue_valid is 1
-  assert property (xif_if.issue_valid |-> !$isunknown(xif_if.issue_req));
+  assert property (xif_if.issue_valid |-> !$isunknown(xif_if.issue_req))
+      else $error("xif_if.issue_req is unknown when xif_if.issue_valid is HIGH");
   
   // Property 3: The signals in issue_resp are valid when issue_valid and issue_ready are both 1
-  assert property (xif_if.issue_valid && xif_if.issue_ready |-> !$isunknown(xif_if.issue_resp));
+  assert property (xif_if.issue_valid && xif_if.issue_ready |-> !$isunknown(xif_if.issue_resp))
+      else $error("xif_if.issue_resp is unknown during an XIF issue transaction when xif_if.issue_valid and xif_if.issue_ready are both HIGH");
   
   // Property 4: The register.hartid, register.id, register.ecs_valid and register.rs_valid signals are valid when register_valid is 1.
-  assert property (xif_if.register_valid |-> !$isunknown(xif_if.register.hartid) && !$isunknown(xif_if.register.id) && !$isunknown(xif_if.register.ecs_valid) && !$isunknown(xif_if.register.rs_valid));
+  assert property (xif_if.register_valid |-> !$isunknown(xif_if.register.hartid) && !$isunknown(xif_if.register.id) && !$isunknown(xif_if.register.ecs_valid) && !$isunknown(xif_if.register.rs_valid))
+      else $error("xif_if.register signals are unknown when xif_if.register_valid is HIGH");
   
   // Property 5: The register.rs signals required to be stable during the register.rs_valid bits to be 1.
   // NOTE: using overlapping implication "|->" requires that rs does not change from its value just before rs_valid goes HIGH!!
-  assert property ($rose(xif_if.register.rs_valid[0]) |=> $stable(xif_if.register.rs[0]) until $fell(xif_if.register.rs_valid[0]));
-  assert property ($rose(xif_if.register.rs_valid[1]) |=> $stable(xif_if.register.rs[1]) until $fell(xif_if.register.rs_valid[1]));
+  assert property ($rose(xif_if.register.rs_valid[0]) |=> $stable(xif_if.register.rs[0]) until xif_if.register_ready)
+      else $error("xif_if.register.rs[0] is not stable during a XIF register transaction");
+  assert property ($rose(xif_if.register.rs_valid[1]) |=> $stable(xif_if.register.rs[1]) until xif_if.register_ready)
+      else $error("xif_if.register.rs[1] is not stable during a XIF register transaction");
   // assert property (xif_if.register.rs_valid[2] |=> $stable(xif_if.register.rs[2])); // NOTE: not used
   
   // Property 6: The signals in result are valid when result_valid is 1. 
-  assert property (xif_if.result_valid |-> !$isunknown(xif_if.result));
+  assert property (xif_if.result_valid |-> !$isunknown(xif_if.result))
+      else $error("xif_if.result is unknown when xif_if.result_valid is HIGH");
   
   // Property 7: The signals in result shall remain stable during a result transaction.
-  assert property ($rose(xif_if.result_valid) |=> $stable(xif_if.result) until $fell(xif_if.result_valid));
+  assert property ($rose(xif_if.result_valid) |=> $stable(xif_if.result) until xif_if.result_ready) 
+      else $error("xif_if.result is not stable during a XIF result transaction");
   // Alternative to the above. This assertion means that the <<condition>> "result is stable" holds throughout 
   // the <<sequence>> of "result_valid being HIGH for 1 cycle or more".
-  // assert property ($rose(xif_if.result_valid) |=> $stable(xif_if.result) throughout xif_if.result_valid [*1:$]);
+  // assert property ($rose(xif_if.result_valid) |=> $stable(xif_if.result) throughout xif_if.result_valid [*1:$])
+  //     else $error("xif_if.result is not stable during a XIF result transaction");
+
 
 endmodule

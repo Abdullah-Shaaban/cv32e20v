@@ -5,7 +5,14 @@
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-////// Data arbiter for main core and vector unit. Assumes 32-bit memory interface ////////
+// Brief description: 
+// Data arbiter for main core and vector unit. Assumes 32-bit memory interface
+// Generally, the scalar/vector request is propagated to the memory, and it is acknowledged if the memory interface is ready.
+// The vector requests are prioritized over the scalar requests at all times (static priority).
+// A 5-bit counter is used to make sure each granted request has an associated response transaction. However, we don't have any form of request identification.
+// Therefore, all transactions are assumed to be in order, and we cannot concurrently serve a vector and a scalar request.
+// The scalar requests are not propagated to memory nor acknowledged if the vector unit is requesting and/or a vector access is ongoing.
+// Because we can't distinguish between requests, an ongoing scalar access will stop a vector request from being propagated/acknowledged; however, when the memory completes the respnse transaction, further scalar requests will be stopped, and the vector requests will be served until all vector accesses are completed.
 ///////////////////////////////////////////////////////////////////////////////////////////
 module data_mem_arbiter (
     input logic clk_i, 
@@ -28,8 +35,6 @@ module data_mem_arbiter (
     input logic [31:0]      vdata_addr_i,
     input logic [31:0]      vdata_wdata_i,
     input logic             vdata_req_i,
-    input logic             vect_pending_store_i, 
-    input logic             vect_pending_load_i,
     output logic            vdata_gnt_o, 
     output logic            vdata_rvalid_o, 
     output logic            vdata_err_o,
@@ -47,14 +52,13 @@ module data_mem_arbiter (
     output logic [31:0]     data_wdata_o
 );
 
-    // Favor the vector core. Block the scalar core's requests
-    logic sdata_hold;
-    // TODO: get the equivalent of vect_pending_store and vect_pending_load from Spatz
-    assign sdata_hold = (vdata_req_i | vect_pending_store_i | (vect_pending_load_i & sdata_we_i));
-
-    // Data request and assignment logic
+    logic ongoing_scalar_access_q; 
+    logic ongoing_vector_access_q;
+    logic [4:0] ongoing_access_count_q;
+    
     always_comb begin
-        data_req_o   = vdata_req_i | (sdata_req_i & ~sdata_hold);
+        // Memory side
+        data_req_o   = (vdata_req_i && !ongoing_scalar_access_q) || (sdata_req_i && !(ongoing_vector_access_q || vdata_req_i));
         data_addr_o  = sdata_addr_i;
         data_we_o    = sdata_we_i;
         data_be_o    = sdata_be_i;
@@ -65,38 +69,50 @@ module data_mem_arbiter (
             data_be_o    = vdata_be_i;
             data_wdata_o = vdata_wdata_i;
         end
+
+        // Cores grants
+        sdata_gnt_o = sdata_req_i && data_gnt_i && !(ongoing_vector_access_q || vdata_req_i);
+        vdata_gnt_o = vdata_req_i && data_gnt_i && !ongoing_scalar_access_q;
+        
+        // We propagate the memory response to core with ongoing access
+        // CVE2-specific: LSU expects rvalid to be asserted even for store operations. LSU also expects a response only if it has sent a request.
+        sdata_rvalid_o = ongoing_scalar_access_q && data_rvalid_i;
+        vdata_rvalid_o = ongoing_vector_access_q && data_rvalid_i;
+        sdata_rdata_o = data_rdata_i;
+        vdata_rdata_o = data_rdata_i;
+        sdata_err_o = data_err_i;
+        vdata_err_o = data_err_i;
     end
-
-    // Grant assignment for scalar and vector cores
-    assign sdata_gnt_o = data_gnt_i && sdata_req_i && ~sdata_hold;
-    assign vdata_gnt_o = data_gnt_i && vdata_req_i;
-
-    // Remember the granted core
-    logic sdata_waiting; 
-    logic vdata_waiting;
+    
     always_ff @(posedge clk_i or negedge rst_ni) begin
         if (~rst_ni) begin
-            sdata_waiting   <= 1'b0;
-            vdata_waiting   <= 1'b0;
+            ongoing_scalar_access_q   <= 1'b0;
+            ongoing_vector_access_q   <= 1'b0;
+            ongoing_access_count_q    <= 'd0;
         end else begin
-            if (sdata_gnt_o) sdata_waiting <= 1'b1;
-            else if (sdata_rvalid_o) sdata_waiting <= 1'b0;
 
-            if (vdata_gnt_o) vdata_waiting <= 1'b1;
-            else if (vdata_rvalid_o) vdata_waiting <= 1'b0;
+            // Increment the ongoing accesses counter for each granted request and decrement it for each response.
+            // If both a grant and a response happen concurrently, the counter will remain the same.
+            if ((sdata_gnt_o || vdata_gnt_o) && !(sdata_rvalid_o || vdata_rvalid_o)) begin
+                ongoing_access_count_q <= ongoing_access_count_q + 1'b1;
+            end else if (!(sdata_gnt_o || vdata_gnt_o) && (sdata_rvalid_o || vdata_rvalid_o)) begin
+                ongoing_access_count_q <= ongoing_access_count_q - 1'b1;
+            end
+
+            // The flags for ongoing scalar/vector accesse are set on the first granted request and reset only when all requests are served.
+            // There cannot be concurrent scalar and vector granted requests, so it is safe to separate the 2 if statements below.
+            if (sdata_gnt_o) begin
+                ongoing_scalar_access_q <= 1'b1;
+            end else if (ongoing_access_count_q == 'd0) begin
+                ongoing_scalar_access_q <= 1'b0;
+            end
+
+            if (vdata_gnt_o) begin
+                ongoing_vector_access_q <= 1'b1;
+            end else if (ongoing_access_count_q == 'd0) begin
+                ongoing_vector_access_q <= 1'b0;
+            end
         end
     end
-
-    // Valid assertion for the granted core
-    assign sdata_rvalid_o = sdata_waiting && data_rvalid_i;
-    assign vdata_rvalid_o = vdata_waiting && data_rvalid_i;
-
-    // Data propagation
-    assign sdata_rdata_o  = data_rdata_i;
-    assign vdata_rdata_o  = data_rdata_i;
-
-    // Error propagation
-    assign sdata_err_o    = data_err_i;
-    assign vdata_err_o    = data_err_i;
     
 endmodule

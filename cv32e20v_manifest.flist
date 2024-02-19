@@ -67,10 +67,10 @@
 ///////////////////////
 +incdir+/pri/abal/V_Unit/cv32e20v/common_cells/include
 /pri/abal/V_Unit/cv32e20v/spatz/hw/ip/snitch/src/riscv_instr.sv
+/pri/abal/V_Unit/cv32e20v/axi-0.39.1-beta/src/axi_pkg.sv
 /pri/abal/V_Unit/cv32e20v/spatz/hw/ip/reqrsp_interface/src/reqrsp_pkg.sv
 /pri/abal/V_Unit/cv32e20v/cvfpu/src/fpnew_pkg.sv
 /pri/abal/V_Unit/cv32e20v/common_cells/src/cf_math_pkg.sv
-/pri/abal/V_Unit/cv32e20v/axi-0.39.1-beta/src/axi_pkg.sv
 /pri/abal/V_Unit/cv32e20v/tech_cells_generic-master/src/rtl/tc_clk.sv
 /pri/abal/V_Unit/cv32e20v/common_cells/src/spill_register_flushable.sv
 /pri/abal/V_Unit/cv32e20v/common_cells/src/spill_register.sv
