@@ -51,13 +51,16 @@ module data_mem_arbiter (
     output logic [31:0]     data_wdata_o
 );
 
-    logic ongoing_scalar_access_q; 
-    logic ongoing_vector_access_q;
-    logic [4:0] ongoing_access_count_q;
+    // Arbiter state
+    logic [4:0] ongoing_access_count_q, ongoing_access_count_d;
+    // SERVING_VECTOR state: We serve the vector requests by default. When an ongoing scalar access is completed, we return to this state.
+    // SERVING_SCALAR state: If a scalar request is received and no memory access is ongoing, we go to this state.
+    enum logic {SERVING_VECTOR, SERVING_SCALAR} state_q, state_d;
     
     always_comb begin
         // Memory side
-        data_req_o   = (vdata_req_i && !ongoing_scalar_access_q) || (sdata_req_i && !(ongoing_vector_access_q || vdata_req_i));
+        data_req_o   = (vdata_req_i && (ongoing_access_count_q == 'd0 || state_q == SERVING_VECTOR)) || 
+                       (sdata_req_i && (ongoing_access_count_q == 'd0 || state_q == SERVING_SCALAR) && !vdata_req_i);
         data_addr_o  = sdata_addr_i;
         data_we_o    = sdata_we_i;
         data_be_o    = sdata_be_i;
@@ -70,13 +73,15 @@ module data_mem_arbiter (
         end
 
         // Cores grants
-        sdata_gnt_o = sdata_req_i && data_gnt_i && !(ongoing_vector_access_q || vdata_req_i);
-        vdata_gnt_o = vdata_req_i && data_gnt_i && !ongoing_scalar_access_q;
+        // Grant the scalar core if the vector unit is not requesting, and either there is no ongoing access or a scalar access is ongoing.
+        sdata_gnt_o = sdata_req_i && data_gnt_i && (ongoing_access_count_q == 'd0 || state_q == SERVING_SCALAR) && !vdata_req_i;
+        // Grant the vector unit if there is no ongoing access or a vector access is ongoing.
+        vdata_gnt_o = vdata_req_i && data_gnt_i && (ongoing_access_count_q == 'd0 || state_q == SERVING_VECTOR);
         
         // We propagate the memory response to core with ongoing access
         // CVE2-specific: LSU expects rvalid to be asserted even for store operations. LSU also expects a response only if it has sent a request.
-        sdata_rvalid_o = ongoing_scalar_access_q && data_rvalid_i;
-        vdata_rvalid_o = ongoing_vector_access_q && data_rvalid_i;
+        sdata_rvalid_o = (state_q == SERVING_SCALAR) && data_rvalid_i;
+        vdata_rvalid_o = (state_q == SERVING_VECTOR) && data_rvalid_i;
         sdata_rdata_o = data_rdata_i;
         vdata_rdata_o = data_rdata_i;
         sdata_err_o = data_err_i;
@@ -85,31 +90,36 @@ module data_mem_arbiter (
     
     always_ff @(posedge clk_i or negedge rst_ni) begin
         if (~rst_ni) begin
-            ongoing_scalar_access_q   <= 1'b0;
-            ongoing_vector_access_q   <= 1'b0;
             ongoing_access_count_q    <= 'd0;
+            state_q                   <= SERVING_VECTOR;
         end else begin
+            state_q <= state_d;
+            ongoing_access_count_q <= ongoing_access_count_d;
+        end
+    end
 
+    always_comb begin
+        ongoing_access_count_d = ongoing_access_count_q;
+        // If both a grant and a response happen concurrently, the counter will remain the same.
+        if (!((sdata_gnt_o || vdata_gnt_o) & (sdata_rvalid_o || vdata_rvalid_o))) begin        
             // Increment the ongoing accesses counter for each granted request and decrement it for each response.
-            // If both a grant and a response happen concurrently, the counter will remain the same.
-            if ((sdata_gnt_o || vdata_gnt_o) && !(sdata_rvalid_o || vdata_rvalid_o)) begin
-                ongoing_access_count_q <= ongoing_access_count_q + 1'b1;
-            end else if (!(sdata_gnt_o || vdata_gnt_o) && (sdata_rvalid_o || vdata_rvalid_o)) begin
-                ongoing_access_count_q <= ongoing_access_count_q - 1'b1;
+            if ((sdata_gnt_o || vdata_gnt_o)) begin
+                ongoing_access_count_d = ongoing_access_count_q + 1'b1;
+            end 
+            if ((sdata_rvalid_o || vdata_rvalid_o)) begin
+                ongoing_access_count_d = ongoing_access_count_q - 1'b1;
             end
-
-            // The flags for ongoing scalar/vector accesse are set on the first granted request and reset only when all requests are served.
-            // There cannot be concurrent scalar and vector granted requests, so it is safe to separate the 2 if statements below.
+        end
+        // State machine
+        state_d = state_q;
+        if (state_q == SERVING_VECTOR) begin
             if (sdata_gnt_o) begin
-                ongoing_scalar_access_q <= 1'b1;
-            end else if (ongoing_access_count_q == 'd0) begin
-                ongoing_scalar_access_q <= 1'b0;
+                state_d = SERVING_SCALAR;
             end
-
-            if (vdata_gnt_o) begin
-                ongoing_vector_access_q <= 1'b1;
-            end else if (ongoing_access_count_q == 'd0) begin
-                ongoing_vector_access_q <= 1'b0;
+        end else begin
+            // Return when all pendning requests are served, except if we grant another scalar request just at the end of an ongoing scalar access.
+            if ((ongoing_access_count_q == 0) && !sdata_gnt_o) begin
+                state_d = SERVING_VECTOR;
             end
         end
     end
