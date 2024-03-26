@@ -5,12 +5,9 @@
 /*
  * Module Description: this module is the top level that instantiates and connects 
  * the scalar unit CVE2 and the vector unit Spatz.
- * 
- * NOTE: this module is adapted from cve2_top_tracing to be used in the UVM TB from CORE-V-VERIF,
- * but it should be changed before the synthesis and power flows.
 */
 
-module vector_top import cve2_pkg::*; #(
+module cve2v_top import cve2_pkg::*; #(
     parameter int unsigned MHPMCounterNum   = 0,
     parameter int unsigned MHPMCounterWidth = 40,
     parameter bit          RV32E            = 1'b0,
@@ -59,12 +56,42 @@ module vector_top import cve2_pkg::*; #(
     // Debug Interface
     input  logic                         debug_req_i,
     output crash_dump_t                  crash_dump_o,
-  
+
+      // RISC-V Formal Interface
+`ifdef RVFI
+        output logic                         rvfi_valid,
+        output logic [63:0]                  rvfi_order,
+        output logic [31:0]                  rvfi_insn,
+        output logic                         rvfi_trap,
+        output logic                         rvfi_halt,
+        output logic                         rvfi_intr,
+        output logic [ 1:0]                  rvfi_mode,
+        output logic [ 1:0]                  rvfi_ixl,
+        output logic [ 4:0]                  rvfi_rs1_addr,
+        output logic [ 4:0]                  rvfi_rs2_addr,
+        output logic [ 4:0]                  rvfi_rs3_addr,
+        output logic [31:0]                  rvfi_rs1_rdata,
+        output logic [31:0]                  rvfi_rs2_rdata,
+        output logic [31:0]                  rvfi_rs3_rdata,
+        output logic [ 4:0]                  rvfi_rd_addr,
+        output logic [31:0]                  rvfi_rd_wdata,
+        output logic [31:0]                  rvfi_pc_rdata,
+        output logic [31:0]                  rvfi_pc_wdata,
+        output logic [31:0]                  rvfi_mem_addr,
+        output logic [ 3:0]                  rvfi_mem_rmask,
+        output logic [ 3:0]                  rvfi_mem_wmask,
+        output logic [31:0]                  rvfi_mem_rdata,
+        output logic [31:0]                  rvfi_mem_wdata,
+        output logic [31:0]                  rvfi_ext_mip,
+        output logic                         rvfi_ext_nmi,
+        output logic                         rvfi_ext_debug_req,
+        output logic [63:0]                  rvfi_ext_mcycle,
+`endif  
+
     // CPU Control Signals
     input  logic                         fetch_enable_i,
     output logic                         core_sleep_o
-  
-  );
+);
   
   // The data memory interface signals pass  through the arbiter first
   // Scalar signals
@@ -93,8 +120,8 @@ module vector_top import cve2_pkg::*; #(
 
   // Data memory arbiter
   data_mem_arbiter u_data_mem_arbiter (
-    .clk_i,
-    .rst_ni,
+    .clk_i                  (clk_i),
+    .rst_ni                 (rst_ni),
     
     // Scalar interface
     .sdata_req_i            (sdata_req),
@@ -236,7 +263,7 @@ module vector_top import cve2_pkg::*; #(
   ) u_spatz (
     .clk_i                   (clk_i),
     .rst_ni                  (rst_ni),
-    .testmode_i              (0),
+    .testmode_i              (1'b0),
     .hart_id_i               (hart_id_i),
     
     // Interface to CVE2
@@ -269,50 +296,6 @@ module vector_top import cve2_pkg::*; #(
   //////////////////////////////
   /////////// CVE2 /////////////
   //////////////////////////////
-  // cve2_tracer relies on the signals from the RISC-V Formal Interface
-  `ifndef RVFI
-    $fatal(1,"Fatal error: RVFI needs to be defined globally.");
-  `endif
-  logic        rvfi_valid;
-  logic [63:0] rvfi_order;
-  logic [31:0] rvfi_insn;
-  logic        rvfi_trap;
-  logic        rvfi_halt;
-  logic        rvfi_intr;
-  logic [ 1:0] rvfi_mode;
-  logic [ 1:0] rvfi_ixl;
-  logic [ 4:0] rvfi_rs1_addr;
-  logic [ 4:0] rvfi_rs2_addr;
-  logic [ 4:0] rvfi_rs3_addr;
-  logic [31:0] rvfi_rs1_rdata;
-  logic [31:0] rvfi_rs2_rdata;
-  logic [31:0] rvfi_rs3_rdata;
-  logic [ 4:0] rvfi_rd_addr;
-  logic [31:0] rvfi_rd_wdata;
-  logic [31:0] rvfi_pc_rdata;
-  logic [31:0] rvfi_pc_wdata;
-  logic [31:0] rvfi_mem_addr;
-  logic [ 3:0] rvfi_mem_rmask;
-  logic [ 3:0] rvfi_mem_wmask;
-  logic [31:0] rvfi_mem_rdata;
-  logic [31:0] rvfi_mem_wdata;
-  logic [31:0] rvfi_ext_mip;
-  logic        rvfi_ext_nmi;
-  logic        rvfi_ext_debug_req;
-  logic [63:0] rvfi_ext_mcycle;
-
-  logic [31:0] unused_rvfi_ext_mip;
-  logic        unused_rvfi_ext_nmi;
-  logic        unused_rvfi_ext_debug_req;
-  logic [63:0] unused_rvfi_ext_mcycle;
-
-  // Tracer doesn't use these signals, though other modules may probe down into tracer to observe
-  // them.
-  assign unused_rvfi_ext_mip = rvfi_ext_mip;
-  assign unused_rvfi_ext_nmi = rvfi_ext_nmi;
-  assign unused_rvfi_ext_debug_req = rvfi_ext_debug_req;
-  assign unused_rvfi_ext_mcycle = rvfi_ext_mcycle;
-
   cve2_top #(
     .MHPMCounterNum   (MHPMCounterNum),
     .MHPMCounterWidth (MHPMCounterWidth),
@@ -322,8 +305,8 @@ module vector_top import cve2_pkg::*; #(
     .DmHaltAddr       (DmHaltAddr),
     .DmExceptionAddr  (DmExceptionAddr)
   ) u_cve2_top (
-    .clk_i,
-    .rst_ni,
+    .clk_i (clk_i),
+    .rst_ni(rst_ni),
 
     .test_en_i,
     .ram_cfg_i,
@@ -362,7 +345,7 @@ module vector_top import cve2_pkg::*; #(
     .xif_register_if  (xif_if),
     .xif_commit_if    (xif_if),
     .xif_result_if    (xif_if),
-
+`ifdef RVFI
     .rvfi_valid,
     .rvfi_order,
     .rvfi_insn,
@@ -390,85 +373,9 @@ module vector_top import cve2_pkg::*; #(
     .rvfi_ext_nmi,
     .rvfi_ext_debug_req,
     .rvfi_ext_mcycle,
-
+`endif
     .fetch_enable_i,
     .core_sleep_o
   );
-
-  cve2_tracer u_cve2_tracer (
-    .clk_i,
-    .rst_ni,
-
-    .hart_id_i,
-
-    .rvfi_valid,
-    .rvfi_order,
-    .rvfi_insn,
-    .rvfi_trap,
-    .rvfi_halt,
-    .rvfi_intr,
-    .rvfi_mode,
-    .rvfi_ixl,
-    .rvfi_rs1_addr,
-    .rvfi_rs2_addr,
-    .rvfi_rs3_addr,
-    .rvfi_rs1_rdata,
-    .rvfi_rs2_rdata,
-    .rvfi_rs3_rdata,
-    .rvfi_rd_addr,
-    .rvfi_rd_wdata,
-    .rvfi_pc_rdata,
-    .rvfi_pc_wdata,
-    .rvfi_mem_addr,
-    .rvfi_mem_rmask,
-    .rvfi_mem_wmask,
-    .rvfi_mem_rdata,
-    .rvfi_mem_wdata
-  );
-  
-  //////////////////////////////
-  //////// Assertions //////////
-  //////////////////////////////
-  
-  // Default Clocking Block, avoids the need for @(posedge clk_i) in the assertions
-  default clocking @(posedge clk_i); endclocking
-  
-  // Property 1: for each valid issue request, there is a ready response. 
-  // NOTE: "or" allows CVE2 to retract its issue request, which is valid behavior.
-  assert property ($rose(xif_if.issue_valid) |-> ##[1:$] xif_if.issue_ready or $fell(xif_if.issue_valid))
-      else $error("xif_if.issue_ready is not asserted for a valid issue request");
-  
-  // Property 2: The issue_req signals are valid when issue_valid is 1
-  assert property (xif_if.issue_valid |-> !$isunknown(xif_if.issue_req))
-      else $error("xif_if.issue_req is unknown when xif_if.issue_valid is HIGH");
-  
-  // Property 3: The signals in issue_resp are valid when issue_valid and issue_ready are both 1
-  assert property (xif_if.issue_valid && xif_if.issue_ready |-> !$isunknown(xif_if.issue_resp))
-      else $error("xif_if.issue_resp is unknown during an XIF issue transaction when xif_if.issue_valid and xif_if.issue_ready are both HIGH");
-  
-  // Property 4: The register.hartid, register.id, register.ecs_valid and register.rs_valid signals are valid when register_valid is 1.
-  assert property (xif_if.register_valid |-> !$isunknown(xif_if.register.hartid) && !$isunknown(xif_if.register.id) && !$isunknown(xif_if.register.ecs_valid) && !$isunknown(xif_if.register.rs_valid))
-      else $error("xif_if.register signals are unknown when xif_if.register_valid is HIGH");
-  
-  // Property 5: The register.rs signals required to be stable during the register.rs_valid bits to be 1.
-  // NOTE: using overlapping implication "|->" requires that rs does not change from its value just before rs_valid goes HIGH!!
-  assert property ($rose(xif_if.register.rs_valid[0]) |=> $stable(xif_if.register.rs[0]) until xif_if.register_ready)
-      else $error("xif_if.register.rs[0] is not stable during a XIF register transaction");
-  assert property ($rose(xif_if.register.rs_valid[1]) |=> $stable(xif_if.register.rs[1]) until xif_if.register_ready)
-      else $error("xif_if.register.rs[1] is not stable during a XIF register transaction");
-  // assert property (xif_if.register.rs_valid[2] |=> $stable(xif_if.register.rs[2])); // NOTE: not used
-  
-  // Property 6: The signals in result are valid when result_valid is 1. 
-  assert property (xif_if.result_valid |-> !$isunknown(xif_if.result))
-      else $error("xif_if.result is unknown when xif_if.result_valid is HIGH");
-  
-  // Property 7: The signals in result shall remain stable during a result transaction.
-  assert property ($rose(xif_if.result_valid) |=> $stable(xif_if.result) until xif_if.result_ready) 
-      else $error("xif_if.result is not stable during a XIF result transaction");
-  // Alternative to the above. This assertion means that the <<condition>> "result is stable" holds throughout 
-  // the <<sequence>> of "result_valid being HIGH for 1 cycle or more".
-  // assert property ($rose(xif_if.result_valid) |=> $stable(xif_if.result) throughout xif_if.result_valid [*1:$])
-  //     else $error("xif_if.result is not stable during a XIF result transaction");
-
 
 endmodule

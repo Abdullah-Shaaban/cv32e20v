@@ -1,8 +1,9 @@
 .dvt/
 *.log
 
-# Don't track syn/ because it's confidential
+# Don't track syn and pwr because it's confidential
 syn/
+pwr/
 
 # Don't track dependency repos. TODO: add as submodules later
 common_cells/

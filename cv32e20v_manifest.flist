@@ -60,7 +60,8 @@
 /pri/abal/V_Unit/cv32e20v/CVE2X/rtl/cve2_top.sv
 /pri/abal/V_Unit/cv32e20v/CVE2X/rtl/cve2_top_tracing.sv
 /pri/abal/V_Unit/cv32e20v/CVE2X/rtl/cve2_tracer.sv
-/pri/abal/V_Unit/cv32e20v/CVE2X/rtl/../bhv/cve2_sim_clock_gate.sv
+/pri/abal/V_Unit/cv32e20v/CVE2X/syn/rtl/cve2_clock_gating.v
+// /pri/abal/V_Unit/cv32e20v/CVE2X/rtl/../bhv/cve2_sim_clock_gate.sv
 
 ///////////////////////
 //////// Spatz ////////
@@ -99,4 +100,5 @@
 ////// Top Level //////
 ///////////////////////
 /pri/abal/V_Unit/cv32e20v/hw/data_mem_arbiter.sv
-/pri/abal/V_Unit/cv32e20v/hw/vector_top.sv
+/pri/abal/V_Unit/cv32e20v/hw/cve2v_top.sv
+/pri/abal/V_Unit/cv32e20v/hw/cve2v_top_tracing.sv

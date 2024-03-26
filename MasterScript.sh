@@ -16,7 +16,7 @@ source SetupScript.sh
     # Example for UVM quit count: USER_RUN_FLAGS=+UVM_MAX_QUIT_COUNT=10,NO
 
 ### Run benchmark tests
-make -C $SIM_DIR test TEST=arr_add SIMULATOR=vsim USE_ISS=0 ADV_DEBUG=YES GUI=NO WAVES=YES
+make -C $SIM_DIR test TEST=axpy SIMULATOR=vsim USE_ISS=0 ADV_DEBUG=1 GUI=0 WAVES=1 USER_DEFINES=+define+CVE2V_SYNTH+BENCHMARK
 
 ### Open generated waveforms for debugging
 # make -C $SIM_DIR waves TEST=hello-world SIMULATOR=vsim ADV_DEBUG=YES 
