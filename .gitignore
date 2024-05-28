@@ -4,6 +4,7 @@
 # Don't track syn and pwr because it's confidential
 syn/
 pwr/
+lint/
 
 # Don't track dependency repos. TODO: add as submodules later
 common_cells/

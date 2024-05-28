@@ -11,7 +11,7 @@ module cve2v_top import cve2_pkg::*; #(
     parameter int unsigned MHPMCounterNum   = 0,
     parameter int unsigned MHPMCounterWidth = 40,
     parameter bit          RV32E            = 1'b0,
-    parameter rv32m_e      RV32M            = RV32MFast,
+    parameter rv32m_e      RV32M            = RV32MSingleCycle,//RV32MFast,
     parameter bit          BranchPredictor  = 1'b0,
     parameter int unsigned DmHaltAddr       = 32'h1A110800,
     parameter int unsigned DmExceptionAddr  = 32'h1A110808
@@ -116,7 +116,10 @@ module cve2v_top import cve2_pkg::*; #(
   logic [31:0]   vdata_rdata;
 
   // eXtension interface instance to connect CVE2 and Spatz
-  cve2_if_xif xif_if();
+  if_xif_issue     xif_issue_if();
+  if_xif_register  xif_register_if();
+  if_xif_commit    xif_commit_if();
+  if_xif_result    xif_result_if();
 
   // Data memory arbiter
   data_mem_arbiter u_data_mem_arbiter (
@@ -209,20 +212,20 @@ module cve2v_top import cve2_pkg::*; #(
   always_comb begin : glue_xif
     // NOTE: unused fields are tied to 0 for now
     spatz_issue_req ='{
-        id : xif_if.issue_req.instr[11:7],  // rd field
-        data_op : xif_if.issue_req.instr,
-        data_arga : xif_if.register.rs[0],  // Assumes the register handshake is done with the instruction issue
-        data_argb : xif_if.register.rs[1],
+        id : xif_issue_if.issue_req.instr[11:7],  // rd field
+        data_op : xif_issue_if.issue_req.instr,
+        data_arga : xif_register_if.register.rs[0],  // Assumes the register handshake is done with the instruction issue
+        data_argb : xif_register_if.register.rs[1],
         data_argc : '0
     };
-    xif_if.issue_resp ='{
+    xif_issue_if.issue_resp ='{
         accept : spatz_issue_resp.accept,
         writeback : spatz_issue_resp.writeback,
         register_read : 1'b0, // NOTE: Spatz does not have to assert this signal because CVE2 provides the register values speculatively anyway
         ecswrite : 1'b0
     };
-    xif_if.register_ready = xif_if.issue_ready; // NOTE: Spatz reads the register values during the issue handshake
-    xif_if.result ='{
+    xif_register_if.register_ready = xif_issue_if.issue_ready; // NOTE: Spatz reads the register values during the issue handshake
+    xif_result_if.result ='{
         id : '0,
         hartid : '0,
         data : spatz_result.data,
@@ -267,12 +270,12 @@ module cve2v_top import cve2_pkg::*; #(
     .hart_id_i               (hart_id_i),
     
     // Interface to CVE2
-    .issue_valid_i           (xif_if.issue_valid),
-    .issue_ready_o           (xif_if.issue_ready),
+    .issue_valid_i           (xif_issue_if.issue_valid),
+    .issue_ready_o           (xif_issue_if.issue_ready),
     .issue_req_i             (spatz_issue_req),
     .issue_rsp_o             (spatz_issue_resp),
-    .rsp_valid_o             (xif_if.result_valid),
-    .rsp_ready_i             (xif_if.result_ready),
+    .rsp_valid_o             (xif_result_if.result_valid),
+    .rsp_ready_i             (xif_result_if.result_ready),
     .rsp_o                   (spatz_result),
     
     // Data memory interface
@@ -341,10 +344,10 @@ module cve2v_top import cve2_pkg::*; #(
     .crash_dump_o,
 
     // eXtension interface
-    .xif_issue_if     (xif_if),
-    .xif_register_if  (xif_if),
-    .xif_commit_if    (xif_if),
-    .xif_result_if    (xif_if),
+    .xif_issue_if     (xif_issue_if.cpu_issue),
+    .xif_register_if  (xif_register_if.cpu_register),
+    .xif_commit_if    (xif_commit_if.cpu_commit),
+    .xif_result_if    (xif_result_if.cpu_result),
 `ifdef RVFI
     .rvfi_valid,
     .rvfi_order,

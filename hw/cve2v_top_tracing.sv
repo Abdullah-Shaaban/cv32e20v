@@ -68,7 +68,7 @@ module cve2v_top_tracing import cve2_pkg::*; #(
 
   // cve2_tracer relies on the signals from the RISC-V Formal Interface
   `ifndef RVFI
-    $fatal(1,"Fatal error: RVFI needs to be defined globally.");
+    // $fatal(1,"Fatal error: RVFI needs to be defined globally.");
   `endif
   logic        rvfi_valid;
   logic [63:0] rvfi_order;
@@ -123,8 +123,16 @@ module cve2v_top_tracing import cve2_pkg::*; #(
     .rst_ni,
 
     .test_en_i,
+`ifndef GLS
     .ram_cfg_i,
-
+`else
+    .ram_cfg_i,
+    // .ram_cfg_i_ram_cfg_cfg_en('0), .ram_cfg_i_ram_cfg_cfg_3_('0),
+    // .ram_cfg_i_ram_cfg_cfg_2_('0), .ram_cfg_i_ram_cfg_cfg_1_('0),
+    // .ram_cfg_i_ram_cfg_cfg_0_('0), .ram_cfg_i_rf_cfg_cfg_en('0),
+    // .ram_cfg_i_rf_cfg_cfg_3_('0), .ram_cfg_i_rf_cfg_cfg_2_('0),
+    // .ram_cfg_i_rf_cfg_cfg_1_('0), .ram_cfg_i_rf_cfg_cfg_0_('0),
+`endif
     .hart_id_i,
     .boot_addr_i,
 
@@ -152,7 +160,9 @@ module cve2v_top_tracing import cve2_pkg::*; #(
     .irq_nm_i,
 
     .debug_req_i,
+`ifndef GLS
     .crash_dump_o,
+`endif
 `ifdef RVFI
     .rvfi_valid,
     .rvfi_order,
@@ -186,53 +196,55 @@ module cve2v_top_tracing import cve2_pkg::*; #(
     .core_sleep_o
   );
 
-  cve2_tracer u_cve2_tracer (
-    .clk_i,
-    .rst_ni,
+  // cve2_tracer u_cve2_tracer (
+  //   .clk_i,
+  //   .rst_ni,
 
-    .hart_id_i,
+  //   .hart_id_i,
 
-    .rvfi_valid,
-    .rvfi_order,
-    .rvfi_insn,
-    .rvfi_trap,
-    .rvfi_halt,
-    .rvfi_intr,
-    .rvfi_mode,
-    .rvfi_ixl,
-    .rvfi_rs1_addr,
-    .rvfi_rs2_addr,
-    .rvfi_rs3_addr,
-    .rvfi_rs1_rdata,
-    .rvfi_rs2_rdata,
-    .rvfi_rs3_rdata,
-    .rvfi_rd_addr,
-    .rvfi_rd_wdata,
-    .rvfi_pc_rdata,
-    .rvfi_pc_wdata,
-    .rvfi_mem_addr,
-    .rvfi_mem_rmask,
-    .rvfi_mem_wmask,
-    .rvfi_mem_rdata,
-    .rvfi_mem_wdata
-  );
+  //   .rvfi_valid,
+  //   .rvfi_order,
+  //   .rvfi_insn,
+  //   .rvfi_trap,
+  //   .rvfi_halt,
+  //   .rvfi_intr,
+  //   .rvfi_mode,
+  //   .rvfi_ixl,
+  //   .rvfi_rs1_addr,
+  //   .rvfi_rs2_addr,
+  //   .rvfi_rs3_addr,
+  //   .rvfi_rs1_rdata,
+  //   .rvfi_rs2_rdata,
+  //   .rvfi_rs3_rdata,
+  //   .rvfi_rd_addr,
+  //   .rvfi_rd_wdata,
+  //   .rvfi_pc_rdata,
+  //   .rvfi_pc_wdata,
+  //   .rvfi_mem_addr,
+  //   .rvfi_mem_rmask,
+  //   .rvfi_mem_wmask,
+  //   .rvfi_mem_rdata,
+  //   .rvfi_mem_wdata
+  // );
 
   ///////////////////////////////
   ////// Benchmarking Logic /////
   ///////////////////////////////
 `ifdef BENCHMARK
-  enum logic [1:0] {
+  enum logic [2:0] {
     BENCHMARK_IDLE,
+    BENCMARK_READY,
     BENCHMARK_RUNNING,
-    WAITING_FOR_VSTORE,
+    WAITING_FOR_SPATZ,
     BENCHMARK_DONE
   } benchmark_state;
   logic fence_insn_flag;
   logic [31:0] benchmark_counter;
 
   // Raise flag when fence reaches decode stage
-  assign fence_insn_flag = u_cve2v_top.u_cve2_top.u_cve2_core.id_stage_i.instr_rdata_i == 32'h0ff0000f;
-  
+  assign fence_insn_flag = u_cve2v_top.u_cve2_top.u_cve2_core.id_stage_i.instr_rdata_i == 32'h0ff0000f &&
+                           u_cve2v_top.u_cve2_top.u_cve2_core.id_stage_i.instr_valid_i == 1'b1;
+
   // FSM
   always_ff @(posedge clk_i or negedge rst_ni) begin
     if (!rst_ni) begin
@@ -241,13 +253,20 @@ module cve2v_top_tracing import cve2_pkg::*; #(
       case (benchmark_state)
         BENCHMARK_IDLE: begin
           if (fence_insn_flag) begin
+            benchmark_state <= BENCMARK_READY;
+          end
+        end
+        BENCMARK_READY: begin // Needed in case fence is preceded by branch
+          if (fence_insn_flag) begin
             benchmark_state <= BENCHMARK_RUNNING;
+          end else begin
+            benchmark_state <= BENCHMARK_IDLE;
           end
         end
         BENCHMARK_RUNNING: begin
 `ifdef BNCH_VECTOR
           if (fence_insn_flag) begin
-            benchmark_state <= WAITING_FOR_VSTORE;
+            benchmark_state <= WAITING_FOR_SPATZ;
           end
 `else
           if (fence_insn_flag) begin
@@ -255,9 +274,8 @@ module cve2v_top_tracing import cve2_pkg::*; #(
           end
 `endif
         end
-        WAITING_FOR_VSTORE: begin
-          if (u_cve2v_top.u_spatz.spatz_mem_str_finished == 1'b1 &&
-              u_cve2v_top.u_spatz.i_controller.running_insn_d == '0 ) begin
+        WAITING_FOR_SPATZ: begin
+          if (u_cve2v_top.u_spatz.i_controller.running_insn_d == '0 ) begin
             benchmark_state <= BENCHMARK_DONE;
           end
         end
@@ -273,18 +291,59 @@ module cve2v_top_tracing import cve2_pkg::*; #(
     if (!rst_ni) begin
       benchmark_counter <= 32'h0;
     end else begin
-      if (benchmark_state == BENCHMARK_RUNNING || benchmark_state == WAITING_FOR_VSTORE) begin
+      if (benchmark_state == BENCHMARK_RUNNING || benchmark_state == WAITING_FOR_SPATZ) begin
         benchmark_counter <= benchmark_counter + 32'h1;
       end
     end
   end
 
   // Print the counter value
+  realtime start_time, end_time;
+  int fd; // File handle
   initial begin
+    // Dump VCD. Change the `vopt` visibility options from `+acc` to `-debug` if necessary.
+    // $dumpfile("waves.vcd");
+    // $dumpvars(0, uvmt_cv32e20_tb.dut_wrap.cv32e20_top_i);
+    // $fsdbDumpfile("waves.fsdb");
+    // $fsdbDumpvars(0, u_cve2v_top.u_cve2_top.u_cve2_core, "+all");
+
+    // Wait for the benchmark to start
+    // $dumpoff;
+    // $fsdbDumpoff;
+    wait(benchmark_state == BENCHMARK_RUNNING);
+
+    // Start Dumping the VCD
+    // $dumpon;
+    // $fsdbDumpon;
+    start_time = $realtime;
+    $display("========================================================================");
+    $display("====================     Benchmarking start time: %t    ================", start_time);
+    $display("========================================================================");
+`ifdef BNCH_VECTOR    
+    wait(benchmark_state == WAITING_FOR_SPATZ)
+    // Force cve2 to stall in decode stage until the vector unit finishes the benchmark
+    force u_cve2v_top.u_cve2_top.u_cve2_core.id_stage_i.stall_id = 1;
+    
     wait(benchmark_state == BENCHMARK_DONE);
+    // Release the stall
+    release u_cve2v_top.u_cve2_top.u_cve2_core.id_stage_i.stall_id;
+`else
+    wait(benchmark_state == BENCHMARK_DONE);
+`endif
+    // End the benchmark
+    // $dumpoff;
+    // $fsdbDumpoff;
+    end_time = $realtime;
     $display("==========================================================================");
+    $display("======================     Benchmark end time: %t    =====================", end_time);
     $display("======================     Benchmark counter: %d    ======================", benchmark_counter);
     $display("==========================================================================");
+    // Store the benchmark results in a file
+    fd = $fopen("benchmark_results.log", "w");
+    $fdisplay(fd, "Benchmark counter: %d", benchmark_counter);
+    $fdisplay(fd, "Benchmark start time: %t", start_time);
+    $fdisplay(fd, "Benchmark end time: %t", end_time);
+    $fclose(fd);
   end
 
 `endif

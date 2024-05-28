@@ -12,6 +12,7 @@
 // Therefore, all transactions are assumed to be in order, and we cannot concurrently serve a vector and a scalar request.
 // The scalar requests are not propagated to memory nor acknowledged if the vector unit is requesting and/or a vector access is ongoing.
 // Because we can't distinguish between requests, an ongoing scalar access will stop a vector request from being propagated/acknowledged; however, when the memory completes the respnse transaction, further scalar requests will be stopped, and the vector requests will be served until all vector accesses are completed.
+// TODO: stop accepting requests when counter hits max value.
 ///////////////////////////////////////////////////////////////////////////////////////////
 module data_mem_arbiter (
     input logic clk_i, 
