@@ -1,0 +1,13 @@
+until pc 0 101d8
+run 1
+vreg 0 1
+reg 0 vxsat
+until pc 0 1021e
+run 1
+vreg 0 1
+reg 0 vxsat
+until pc 0 1025a
+run 1
+vreg 0 1
+reg 0 vxsat
+q

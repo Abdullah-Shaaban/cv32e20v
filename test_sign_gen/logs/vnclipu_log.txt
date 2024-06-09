@@ -1,0 +1,12 @@
+core   0: 0x000101d8 (0xba2200d7) vnclipu.wv v1, v2, v4
+VLEN=128 bits; ELEN=32 bits
+v1  : [3]: 0x00000000  [2]: 0x00000000  [1]: 0x00000000  [0]: 0x013fff06  
+0x00000001
+core   0: 0x0001021e (0xba27c0d7) vnclipu.wx v1, v2, a5
+VLEN=128 bits; ELEN=32 bits
+v1  : [3]: 0x00000000  [2]: 0x00000000  [1]: 0x00000000  [0]: 0x02ff0032  
+0x00000001
+core   0: 0x0001025a (0xba23b0d7) vnclipu.wi v1, v2, 7
+VLEN=128 bits; ELEN=32 bits
+v1  : [3]: 0x00000000  [2]: 0x00000000  [1]: 0x00000000  [0]: 0x01070307  
+0x00000000

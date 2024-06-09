@@ -1,0 +1,194 @@
+.section .data,"aw",@progbits
+.global M
+.align 4
+M:
+    .word 0x0000000e
+.global N
+.align 4
+N:
+    .word 0x0000000e
+.global F
+.align 4
+F:
+    .word 0x00000003
+.global image
+.align 4
+image:
+    .word 0x05040603
+    .word 0x08080000
+    .word 0x00050201
+    .word 0x00050309
+    .word 0x02070205
+    .word 0x08080907
+    .word 0x04020006
+    .word 0x08030302
+    .word 0x02080004
+    .word 0x06030505
+    .word 0x01050508
+    .word 0x08030103
+    .word 0x03030002
+    .word 0x06020209
+    .word 0x01080603
+    .word 0x07000109
+    .word 0x04020608
+    .word 0x07070605
+    .word 0x03060204
+    .word 0x07000104
+    .word 0x02040400
+    .word 0x09000703
+    .word 0x08060001
+    .word 0x00040709
+    .word 0x07080309
+    .word 0x07010203
+    .word 0x04000606
+    .word 0x09080508
+    .word 0x01040607
+    .word 0x02040904
+    .word 0x07080405
+    .word 0x02040600
+    .word 0x08090603
+    .word 0x06090406
+    .word 0x06070906
+    .word 0x09010700
+    .word 0x02070403
+    .word 0x05020303
+    .word 0x01020402
+    .word 0x03070407
+    .word 0x05050907
+    .word 0x08010107
+    .word 0x03000607
+    .word 0x03090406
+    .word 0x05040007
+    .word 0x05010605
+    .word 0x00070007
+    .word 0x05070503
+    .word 0x08090206
+    .word 0x03090400
+    .word 0x01090300
+    .word 0x00020605
+    .word 0x08000506
+    .word 0x01020401
+    .word 0x01020705
+    .word 0x08010909
+    .word 0x05010908
+    .word 0x02070206
+    .word 0x02050403
+    .word 0x06010906
+    .word 0x09030106
+    .word 0x01050004
+    .word 0x01080808
+    .word 0x04090908
+.global filter
+.align 4
+filter:
+    .word 0x01040302
+    .word 0x00040100
+    .word 0x00000003
+.global output
+.align 4
+output:
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+    .word 0x00000000
+.global golden_o
+.align 4
+golden_o:
+    .word 0x2c54365c
+    .word 0x4a5e6f4c
+    .word 0x354f2e53
+    .word 0x2c493c49
+    .word 0x6f7b5664
+    .word 0x3745575c
+    .word 0x5143235b
+    .word 0x4e4d4753
+    .word 0x66656059
+    .word 0x204e3560
+    .word 0x35264c2e
+    .word 0x66385053
+    .word 0x45585a30
+    .word 0x42495a74
+    .word 0x5a54496a
+    .word 0x594a6a4a
+    .word 0x444c4e45
+    .word 0x41555450
+    .word 0x653b5141
+    .word 0x614c3645
+    .word 0x46537e70
+    .word 0x556f716d
+    .word 0x716e504b
+    .word 0x6e505d58
+    .word 0x405d8546
+    .word 0x4b544f4f
+    .word 0x5e51523f
+    .word 0x49544349
+    .word 0x4e758071
+    .word 0x7d595f60
+    .word 0x453b6563
+    .word 0x4262555a
+    .word 0x5036454b
+    .word 0x1b50423c
+    .word 0x53663d4e
+    .word 0x5a625a7b
+    .word 0x57624936
+    .word 0x435e2749
+    .word 0x56455160
+    .word 0x3d336937
+    .word 0x384d3e4d
+    .word 0x755f434b
+    .word 0x46417f5f
+    .word 0x2e474260
+    .word 0x565a434f
+    .word 0x57455949
+    .word 0x19424e3b
+    .word 0x41674f51
+    .word 0x74736b6e
+.global o_checksum
+.align 4
+o_checksum:
+    .word 0x000000f5

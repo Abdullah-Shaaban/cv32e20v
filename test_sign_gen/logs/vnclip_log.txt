@@ -1,0 +1,12 @@
+core   0: 0x000101d8 (0xbe2200d7) vnclip.wv v1, v2, v4
+VLEN=128 bits; ELEN=32 bits
+v1  : [3]: 0x00000000  [2]: 0x00000000  [1]: 0x00000000  [0]: 0x01ff7f06  
+0x00000001
+core   0: 0x0001021e (0xbe27c0d7) vnclip.wx v1, v2, a5
+VLEN=128 bits; ELEN=32 bits
+v1  : [3]: 0x00000000  [2]: 0x00000000  [1]: 0x00000000  [0]: 0x03800164  
+0x00000001
+core   0: 0x0001025a (0xbe23b0d7) vnclip.wi v1, v2, 7
+VLEN=128 bits; ELEN=32 bits
+v1  : [3]: 0x00000000  [2]: 0x00000000  [1]: 0x00000000  [0]: 0x01ff0307  
+0x00000000
